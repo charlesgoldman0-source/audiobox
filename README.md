@@ -64,6 +64,23 @@ Audiobox does not download music. It starts from files already on your disk.
 
 To stop the app, close the terminal window it is running in.
 
+## Updating
+
+New versions arrive through the same repository. Your settings, meaning the folders, the
+checklist and any Spotify sign-in, live in two files inside the Audiobox folder that an
+update never touches (`.audiobox-library.json` and `.audiobox-spotify.json`), so they survive
+every update.
+
+- **Mac:** close Audiobox if it is running, then double-click `Update Audiobox.command`. It
+  fetches the latest version, installs anything new, and starts the app.
+- **Windows, or by hand:** close Audiobox, then in the Audiobox folder run `git pull`, then
+  `npm install`, then start it again.
+- **GitHub Desktop:** Fetch origin, then Pull, then run `npm install` once and start the app.
+
+If an update refuses to apply, a file in the folder was changed by hand. Copy the two
+settings files somewhere safe, install Audiobox again following the steps above, and put
+them back.
+
 ## Using it
 
 ### Convert a folder
