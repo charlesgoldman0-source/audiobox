@@ -42,6 +42,9 @@ Audiobox does not download music. It starts from files already on your disk.
 
 4. Open <http://localhost:4848>.
 
+From then on, double-click `Start Audiobox.cmd` in the audiobox folder to start it. The
+folder is wherever PowerShell was when you ran `git clone`, usually your own user folder.
+
 ## Install on macOS
 
 1. Open Terminal (press Cmd and Space, type Terminal, press Enter).
@@ -73,7 +76,9 @@ every update.
 
 - **Mac:** close Audiobox if it is running, then double-click `Update Audiobox.command`. It
   fetches the latest version, installs anything new, and starts the app.
-- **Windows, or by hand:** close Audiobox, then in the Audiobox folder run `git pull`, then
+- **Windows:** close Audiobox if it is running, then double-click `Update Audiobox.cmd`. It
+  does the same as the Mac version.
+- **By hand, on either:** close Audiobox, then in the Audiobox folder run `git pull`, then
   `npm install`, then start it again.
 - **GitHub Desktop:** Fetch origin, then Pull, then run `npm install` once and start the app.
 
