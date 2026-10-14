@@ -105,6 +105,27 @@ export function setChecklist({ id, name, tracks }) {
   return saveConfig({ checklist, activePlaylist: { id: id || '', name: name || '' } });
 }
 
+// Adds single tracks to the current checklist without replacing it, skipping lines already
+// there. With no playlist active, the additions start a list of their own named
+// "Single tracks", which also names their folders. Returns how many were added.
+export function addToChecklist(tracks) {
+  const cfg = getConfig();
+  const existing = cfg.checklist || [];
+  const seen = new Set(existing.map((t) => String(t.line || '').toLowerCase()));
+  const added = [];
+  for (const t of tracks || []) {
+    const line = String(t.line || '').trim();
+    if (!line || seen.has(line.toLowerCase())) continue;
+    seen.add(line.toLowerCase());
+    added.push({ artist: t.artist || '', title: t.title || '', line });
+  }
+  const active = (cfg.activePlaylist && cfg.activePlaylist.id)
+    ? cfg.activePlaylist
+    : { id: 'single-tracks', name: 'Single tracks' };
+  saveConfig({ checklist: [...existing, ...added], activePlaylist: active });
+  return added.length;
+}
+
 // Marks a checklist line as vinyl only (cannot be downloaded), so it stops counting
 // as missing. Keyed by the line text, so it survives re-loading the playlist.
 export function setVinyl(line, on) {

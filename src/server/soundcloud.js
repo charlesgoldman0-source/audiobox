@@ -38,6 +38,16 @@ export function setRefFrom(input) {
   return { url: 'https://soundcloud.com/' + m[1] + '/sets/' + m[2] + token, short: false };
 }
 
+// A single track link: https://soundcloud.com/<user>/<slug> where the slug is not "sets",
+// optionally followed by /s-<token> for a private track. Profile sections such as /likes
+// match this shape too; their page carries no track, which listTracks reports plainly.
+export function trackRefFrom(input) {
+  const raw = String(input || '').trim();
+  const m = raw.match(/^https?:\/\/(?:www\.|m\.)?soundcloud\.com\/([a-z0-9_-]+)\/(?!sets(?:\/|$))([a-z0-9_-]+)(\/s-[a-zA-Z0-9]+)?/i);
+  if (!m) return null;
+  return { url: 'https://soundcloud.com/' + m[1] + '/' + m[2] + (m[3] || '') };
+}
+
 // A catalogue code such as SGR087, uts20 or VOY-012: letters and digits, no spaces.
 const CATALOGUE_RE = /^[a-z]{1,8}[-_ ]?\d{1,4}[a-z]?$/i;
 const DASH_SPLIT_RE = /\s+-\s*|\s*-\s+/;
@@ -99,6 +109,19 @@ export function playlistFromPage(html) {
   };
 }
 
+// Parses a single track page. Exported for tests.
+export function soundFromPage(html) {
+  const block = String(html || '').match(/window\.__sc_hydration\s*=\s*(\[.+?\]);\s*<\/script>/s);
+  if (!block) throw new Error('Could not read that SoundCloud page. Check the link.');
+  let hydration;
+  try { hydration = JSON.parse(block[1]); } catch { throw new Error('Could not read that SoundCloud page.'); }
+  const entry = hydration.find((h) => h && h.hydratable === 'sound');
+  if (!entry || !entry.data || !entry.data.title) {
+    throw new Error('That SoundCloud link did not open as a track or a playlist. Open the track or set on SoundCloud, choose Share, then Copy Link.');
+  }
+  return entry.data;
+}
+
 // The client id the page ships in its own scripts. Cached for the process; refreshed when
 // SoundCloud rejects it.
 let cachedClientId = '';
@@ -145,17 +168,23 @@ async function fillTracks(tracks, html, playlist) {
 
 // Returns { id, name, tracks } in the same shape as the Spotify and Apple readers.
 export async function listTracks(input) {
-  const ref = setRefFrom(input);
-  if (!ref) throw new Error('That is not a SoundCloud playlist link. Open the set on SoundCloud, choose Share, then Copy Link.');
+  const setRef = setRefFrom(input);
+  const trackRef = setRef ? null : trackRefFrom(input);
+  const ref = setRef || trackRef;
+  if (!ref) throw new Error('That is not a SoundCloud link. Open the set or track on SoundCloud, choose Share, then Copy Link.');
 
   const res = await get(ref.url);
-  if (res.status === 404) throw new Error('SoundCloud has no page for that playlist. If it is yours, make it public or use its private share link.');
-  if (!res.ok) throw new Error('Could not open that SoundCloud playlist (' + res.status + ').');
-  if (ref.short && !/\/sets\//.test(res.url || '')) {
-    throw new Error('That short link does not lead to a playlist. Open the set on SoundCloud, choose Share, then Copy Link.');
+  if (res.status === 404) throw new Error('SoundCloud has no page for that link. If it is yours, make it public or use its private share link.');
+  if (!res.ok) throw new Error('Could not open that SoundCloud link (' + res.status + ').');
+  const html = await res.text();
+
+  // A short link reveals what it is only after the redirect; otherwise the link shape says.
+  const isSet = setRef ? (!setRef.short || /\/sets\//.test(res.url || '')) : false;
+  if (!isSet) {
+    const sound = soundFromPage(html);
+    return { id: 'track-' + sound.id, name: '', single: true, tracks: [trackToLine(sound)] };
   }
 
-  const html = await res.text();
   const playlist = playlistFromPage(html);
   const full = await fillTracks(playlist.tracks, html, playlist);
   const tracks = full.map(trackToLine).filter((t) => t.title);

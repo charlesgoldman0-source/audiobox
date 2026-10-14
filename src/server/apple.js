@@ -53,6 +53,60 @@ function tidyName(value) {
   return String(value || '').replace(INVISIBLE_RE, '').replace(/\s+/g, ' ').trim();
 }
 
+// A single song link: .../song/<slug>/<id>, or an album link whose ?i=<id> picks one track.
+// Returns { storefront, id, url } with the page to fetch, or null.
+export function songRefFrom(input) {
+  const raw = String(input || '').trim();
+  const song = raw.match(/music\.apple\.com\/([a-z]{2})\/song\/(?:[^/?#]+\/)?(\d+)/i);
+  if (song) {
+    const storefront = song[1].toLowerCase();
+    return { storefront, id: song[2], url: 'https://music.apple.com/' + storefront + '/song/' + song[2] };
+  }
+  const album = raw.match(/music\.apple\.com\/([a-z]{2})\/album\/(?:[^/?#]+\/)?(\d+)\?(?:[^#]*&)?i=(\d+)/i);
+  if (album) {
+    const storefront = album[1].toLowerCase();
+    return { storefront, id: album[3], url: 'https://music.apple.com/' + storefront + '/album/' + album[2] + '?i=' + album[3] };
+  }
+  return null;
+}
+
+const SERVER_DATA_RE = /<script[^>]*id="serialized-server-data"[^>]*>(.+?)<\/script>/s;
+
+// Every section of the page's server-data block, across its pages.
+function pageSections(html) {
+  const block = String(html || '').match(SERVER_DATA_RE);
+  if (!block) throw new Error('Could not read that Apple Music page. Check the link.');
+  let data;
+  try { data = JSON.parse(block[1]); } catch { throw new Error('Could not read that Apple Music page.'); }
+  const pages = Array.isArray(data.data) ? data.data : [data];
+  const out = [];
+  for (const page of pages) out.push(...((page && page.data && page.data.sections) || (page && page.sections) || []));
+  return out;
+}
+
+// Reads one song. A song page carries it in the header; an album page carries the whole
+// track list, and the id from ?i= picks the one that was linked. Exported for tests.
+export function songFromPage(html, songId) {
+  const sections = pageSections(html);
+  const header = sections.find((s) => s.itemKind === 'songDetailHeader' && s.items && s.items[0]);
+  if (header) {
+    const item = header.items[0];
+    const linked = Array.isArray(item.artistLinks) ? item.artistLinks.map((l) => l && l.title).filter(Boolean) : [];
+    const typed = typeof item.artists === 'string' ? item.artists : item.artistName;
+    return toLine(linked.length ? linked : splitArtistName(typed), item.title);
+  }
+  const list = sections.find((s) => s.itemKind === 'trackLockup' && Array.isArray(s.items));
+  if (list && songId) {
+    const item = list.items.find((i) => i && i.contentDescriptor && i.contentDescriptor.identifiers
+      && String(i.contentDescriptor.identifiers.storeAdamID) === String(songId));
+    if (item) {
+      const linked = (item.subtitleLinks || []).map((l) => l && l.title).filter(Boolean);
+      return toLine(linked.length ? linked : splitArtistName(item.artistName), item.title);
+    }
+  }
+  throw new Error('No song was found on that Apple Music page. Check the link.');
+}
+
 // Parses a playlist page. Exported so it can be tested on saved markup without the network.
 export function tracksFromPage(html) {
   const block = String(html || '').match(/<script[^>]*id="serialized-server-data"[^>]*>(.+?)<\/script>/s);
@@ -104,9 +158,19 @@ export function tracksFromPage(html) {
 // Returns { id, name, tracks } in the same shape as the Spotify reader, so the client and
 // the checklist treat both services alike.
 export async function listTracks(input) {
+  // A single song link adds one line; the caller appends it to the current list.
+  const song = songRefFrom(input);
+  if (song) {
+    const res = await fetch(song.url, { headers: { 'User-Agent': UA, 'Accept-Language': 'en' } });
+    if (res.status === 404) throw new Error('Apple Music has no page for that song. Check the link.');
+    if (!res.ok) throw new Error('Could not open that Apple Music song (' + res.status + ').');
+    const line = songFromPage(await res.text(), song.id);
+    return { id: 'track-' + song.id, name: '', single: true, tracks: [line] };
+  }
+
   const ref = playlistRefFrom(input);
   if (!ref) {
-    throw new Error('That is not an Apple Music playlist link. In Apple Music open the playlist, choose Share, then Copy Link.');
+    throw new Error('That is not an Apple Music playlist or song link. In Apple Music open it, choose Share, then Copy Link.');
   }
   const pageUrl = `https://music.apple.com/${ref.storefront}/playlist/${ref.id}`;
   const res = await fetch(pageUrl, { headers: { 'User-Agent': UA, 'Accept-Language': 'en' } });

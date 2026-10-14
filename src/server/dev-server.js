@@ -389,6 +389,14 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // A single song link adds to the list instead of replacing it.
+  if (pathname === '/api/library/checklist/add' && req.method === 'POST') {
+    const body = await readBody(req);
+    const added = library.addToChecklist(Array.isArray(body.tracks) ? body.tracks : []);
+    sendJson(res, 200, { added, ...(await library.getState()) });
+    return;
+  }
+
   if (pathname === '/api/library/checklist' && req.method === 'POST') {
     const body = await readBody(req);
     library.setChecklist(body);

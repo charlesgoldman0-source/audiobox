@@ -1,6 +1,6 @@
 // Tests the Apple Music link parser and page parser on synthetic markup. No network.
 import assert from 'node:assert/strict';
-import { playlistRefFrom, tracksFromPage } from '../src/server/apple.js';
+import { playlistRefFrom, tracksFromPage, songRefFrom, songFromPage } from '../src/server/apple.js';
 
 let passed = 0;
 const test = (name, fn) => { fn(); passed += 1; console.log(`  ok  ${name}`); };
@@ -52,6 +52,28 @@ test('strips invisible direction marks from names', () => {
 test('refuses a page without a track list rather than guessing', () => {
   assert.throws(() => tracksFromPage(page([header('Empty')])), /No track list was found/);
   assert.throws(() => tracksFromPage('<html>nothing here</html>'), /Could not read that Apple Music page/);
+});
+
+test('reads song links and album links that pick one song', () => {
+  const a = songRefFrom('https://music.apple.com/za/song/nicole-kidman/6792884088');
+  assert.equal(a.id, '6792884088');
+  assert.equal(a.url, 'https://music.apple.com/za/song/6792884088');
+  const b = songRefFrom('https://music.apple.com/us/album/discovery/697194953?i=697195787');
+  assert.equal(b.id, '697195787');
+  assert.equal(b.url, 'https://music.apple.com/us/album/697194953?i=697195787');
+  assert.equal(songRefFrom('https://music.apple.com/us/album/discovery/697194953'), null);
+  assert.equal(songRefFrom('https://music.apple.com/us/playlist/x/pl.abc'), null);
+});
+
+test('reads one song from a song page header or from an album track list', () => {
+  const songHtml = page([{ itemKind: 'songDetailHeader', items: [{ title: 'Nicole Kidman', artists: 'ADÉLA', artistLinks: [{ title: 'ADÉLA' }] }] }]);
+  assert.equal(songFromPage(songHtml).line, 'ADÉLA - Nicole Kidman');
+  const albumHtml = page([tracks([
+    { title: 'One More Time', artistName: 'Daft Punk', contentDescriptor: { identifiers: { storeAdamID: '1' } } },
+    { title: 'Digital Love', artistName: 'Daft Punk', contentDescriptor: { identifiers: { storeAdamID: '2' } } },
+  ])]);
+  assert.equal(songFromPage(albumHtml, '2').line, 'Daft Punk - Digital Love');
+  assert.throws(() => songFromPage(albumHtml, '9'), /No song was found/);
 });
 
 console.log(`\n${passed} apple tests passed`);

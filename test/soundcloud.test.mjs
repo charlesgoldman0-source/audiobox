@@ -1,6 +1,6 @@
 // Tests the SoundCloud link parser, page parser and naming rule on synthetic data. No network.
 import assert from 'node:assert/strict';
-import { setRefFrom, playlistFromPage, trackToLine } from '../src/server/soundcloud.js';
+import { setRefFrom, playlistFromPage, trackToLine, trackRefFrom, soundFromPage } from '../src/server/soundcloud.js';
 
 let passed = 0;
 const test = (name, fn) => { fn(); passed += 1; console.log(`  ok  ${name}`); };
@@ -47,6 +47,20 @@ test('strips promo wording and leaves the artist blank rather than guess', () =>
   assert.equal(trackToLine({ title: 'Solo Track' }).artist, '');
   assert.equal(trackToLine({ title: 'My Paradise **FREE DL**', publisher_metadata: { artist: 'The Trip' } }).line, 'The Trip - My Paradise');
   assert.equal(trackToLine({ title: 'Night Drive (Out Now on Solid Grooves)', publisher_metadata: { artist: 'Someone' } }).line, 'Someone - Night Drive');
+});
+
+test('accepts single track links and keeps set links apart', () => {
+  assert.deepEqual(trackRefFrom('https://soundcloud.com/apexfaction/dan-white-mesmerise?in=x'), { url: 'https://soundcloud.com/apexfaction/dan-white-mesmerise' });
+  assert.deepEqual(trackRefFrom('https://m.soundcloud.com/user_1/secret-track/s-AbC12'), { url: 'https://soundcloud.com/user_1/secret-track/s-AbC12' });
+  assert.equal(trackRefFrom('https://soundcloud.com/apexfaction/sets/my-set'), null);
+  assert.equal(trackRefFrom('https://soundcloud.com/apexfaction/sets'), null);
+});
+
+test('reads one track out of a track page', () => {
+  const html = page([{ hydratable: 'sound', data: { id: 7, title: 'Dan White & Aleya Mae - Mesmerise', publisher_metadata: { artist: 'Dan White, Aleya Mae' } } }]);
+  assert.equal(soundFromPage(html).id, 7);
+  assert.equal(trackToLine(soundFromPage(html)).line, 'Dan White, Aleya Mae - Mesmerise');
+  assert.throws(() => soundFromPage(page([{ hydratable: 'user', data: {} }])), /did not open as a track/);
 });
 
 console.log(`\n${passed} soundcloud tests passed`);

@@ -106,6 +106,10 @@ In Apple Music, open the playlist, choose Share, then Copy Link; a playlist you 
 has to be shared publicly for the link to work. On SoundCloud, open the set, choose Share,
 then Copy Link; a private set works through its own share link.
 
+A single song's link works too, from any of the three. It is added to the list you already
+have rather than replacing it, so a few links pasted one after another build up a list of
+their own. Lines already on the list are not added twice.
+
 SoundCloud titles are typed by whoever uploaded the track, so the names there are best
 effort: Audiobox uses the label's own artist and title where the upload carries them, then an
 "Artist - Title" split of the upload's title, and otherwise leaves the artist blank rather

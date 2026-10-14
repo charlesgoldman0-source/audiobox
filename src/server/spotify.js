@@ -202,6 +202,13 @@ export function playlistIdFrom(input) {
   return /^[a-zA-Z0-9]{16,40}$/.test(raw) ? raw : '';
 }
 
+// Accepts a track link or a spotify:track: URI and returns the track ID, else ''.
+export function trackIdFrom(input) {
+  const raw = String(input || '').trim();
+  const match = raw.match(/(?:open\.spotify\.com\/(?:[a-z-]{2,12}\/)?track\/|spotify:track:)([a-zA-Z0-9]+)/);
+  return match ? match[1] : '';
+}
+
 function toLine(artist, title) {
   return { artist, title, line: `${artist} - ${title}`.replace(/^ - | - $/g, '').trim() };
 }
@@ -281,6 +288,45 @@ async function tracksViaPublicPage(playlistId) {
   };
 }
 
+async function trackViaApi(trackId) {
+  const track = await api(`/tracks/${trackId}`);
+  const artistStr = (track.artists || []).map((a) => a.name).join(', ');
+  const { artist, title } = normalizeSpotifyTrack(artistStr, track.name);
+  return toLine(artist, title);
+}
+
+// One track from its public embed page, which needs no account.
+async function trackViaPublicPage(trackId) {
+  const res = await fetch(`https://open.spotify.com/embed/track/${trackId}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+  });
+  if (!res.ok) throw new Error(`Could not open that Spotify track (${res.status}).`);
+  const html = await res.text();
+  const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.+?)<\/script>/s);
+  if (!match) throw new Error('Could not read that Spotify track. Check the link.');
+  let entity = {};
+  try {
+    const data = JSON.parse(match[1]);
+    const pageProps = (data.props && data.props.pageProps) || {};
+    entity = (pageProps.state && pageProps.state.data && pageProps.state.data.entity) || pageProps.entity || {};
+  } catch { throw new Error('Could not read that Spotify track.'); }
+  const name = entity.name || entity.title || '';
+  if (!name) throw new Error('No track name came back for that Spotify link.');
+  const artistStr = Array.isArray(entity.artists) ? entity.artists.map((a) => a && a.name).filter(Boolean).join(', ') : String(entity.subtitle || '');
+  const { artist, title } = normalizeSpotifyTrack(artistStr, name);
+  return toLine(artist, title);
+}
+
+// Reads one track, through the Web API when signed in and the public page otherwise.
+export async function readTrack(trackId) {
+  if (getState().connected) {
+    try { return await trackViaApi(trackId); } catch (error) {
+      console.error(`[spotify] API read of track ${trackId} failed, trying the public page: ${error.message}`);
+    }
+  }
+  return trackViaPublicPage(trackId);
+}
+
 // Reads a playlist's tracks. Prefers the Web API when the user is signed in, because that
 // is the only way to read their private playlists. Falls back to the public page when they
 // are not signed in, or when the playlist is not one of theirs.
@@ -288,9 +334,15 @@ async function tracksViaPublicPage(playlistId) {
 // Returns { id, name, tracks }. The resolved ID matters: the caller stores it and names a
 // folder from it, so a pasted URL must never be passed along as an identifier.
 export async function listTracks(input) {
+  // A single track link adds one line; the caller appends it to the current list.
+  const trackId = trackIdFrom(input);
+  if (trackId) {
+    return { id: `track-${trackId}`, name: '', single: true, tracks: [await readTrack(trackId)] };
+  }
+
   const id = playlistIdFrom(input);
   if (!id) {
-    throw new Error('That is not a Spotify playlist link. Copy the link from Spotify’s Share menu.');
+    throw new Error('That is not a Spotify playlist or track link. Copy the link from Spotify’s Share menu.');
   }
 
   if (getState().connected) {

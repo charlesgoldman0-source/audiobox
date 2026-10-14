@@ -109,6 +109,19 @@ The same job for SoundCloud sets, in src/server/soundcloud.js, through `/api/sou
   uploaders are usually labels or DJs.
 - The checklist id is `<user>-<slug>`, and the folder takes the set's title as usual.
 
+## Single Song Links
+
+Each reader also accepts a link to one song: a Spotify track link or `spotify:track:` URI,
+an Apple Music song link or an album link with `?i=<id>`, and a SoundCloud track link
+(anything under a user that is not `/sets/`, including a private `/s-<token>` link). The
+reader returns `{ id: "track-<id>", name: "", single: true, tracks: [line] }`, and the client
+sends the line to `POST /api/library/checklist/add`, which appends to the current checklist,
+skips lines already present, and, when no playlist is active, starts one named
+"Single tracks". A song never replaces the list, because people paste several in a row.
+Sources: Spotify's embed page (or the API when signed in), Apple's `songDetailHeader`
+section (or the album's track list picked by the `?i=` id), SoundCloud's `sound`
+hydratable, all through the same line cleaning as their playlists.
+
 ## Folders
 
 The app moves tracks through three folders, all set by the user in the Folders panel:

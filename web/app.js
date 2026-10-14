@@ -353,6 +353,7 @@ async function loadPlaylistInto(ref, fallbackName) {
   try {
     const res = await (await fetch(`${tracksEndpointFor(ref)}?id=${encodeURIComponent(ref)}`)).json();
     if (res.error) { spotifyMessage(res.error); return; }
+    if (res.single) { await addSingleTrack(res.tracks); return; }
     renderTracks(res.tracks);
     spotifyMessage('', 'ok');
     // Store the resolved ID, never the pasted link: the staging and finished folders are
@@ -367,6 +368,23 @@ async function loadPlaylistInto(ref, fallbackName) {
   } catch { spotifyMessage('Could not read that playlist.'); }
 }
 
+// A single song joins the current list rather than replacing it, so a handful of links
+// pasted one after another build up a list the same way a playlist would.
+async function addSingleTrack(tracks) {
+  const state = await (await fetch('/api/library/checklist/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tracks }),
+  })).json();
+  if (state.error) { spotifyMessage(state.error); return; }
+  renderTracks(state.checklist || []);
+  el('libBar').hidden = false;
+  startLibraryPolling();
+  const line = (tracks[0] && tracks[0].line) || '';
+  spotifyMessage(state.added ? `Added to the list: ${line}` : `Already on the list: ${line}`, 'ok');
+  sp.link.value = '';
+}
+
 function loadTracks() {
   const option = sp.select.options[sp.select.selectedIndex];
   return loadPlaylistInto(sp.select.value, option ? option.text : '');
@@ -375,7 +393,7 @@ function loadTracks() {
 // The no-setup path: paste a link from Spotify's Share menu and read it straight away.
 function loadTracksFromLink() {
   const link = sp.link.value.trim();
-  if (!link) { spotifyMessage('Paste a Spotify, Apple Music or SoundCloud playlist link first.'); return; }
+  if (!link) { spotifyMessage('Paste a playlist or song link first.'); return; }
   // The folder is named after the playlist, and a pasted link carries no name, so the
   // checklist name is left empty and the server falls back to the playlist ID.
   return loadPlaylistInto(link, '');
