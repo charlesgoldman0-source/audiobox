@@ -74,14 +74,20 @@ folder inside it.
 
 ### Work from a playlist
 
-The **Playlist to search list** panel turns a Spotify or Apple Music playlist into a
-copy-paste list for searching on Soulseek, one `Artist - Title` per line, with a copy button
-on each.
+The **Playlist to search list** panel turns a Spotify, Apple Music or SoundCloud playlist
+into a copy-paste list for searching on Soulseek, one `Artist - Title` per line, with a copy
+button on each.
 
 Paste a playlist link and press **Load tracks**. No account and no setup are needed for a
-public playlist on either service. In Spotify, copy the link from the playlist's Share menu.
+public playlist on any of the three. In Spotify, copy the link from the playlist's Share menu.
 In Apple Music, open the playlist, choose Share, then Copy Link; a playlist you made yourself
-has to be shared publicly for the link to work.
+has to be shared publicly for the link to work. On SoundCloud, open the set, choose Share,
+then Copy Link; a private set works through its own share link.
+
+SoundCloud titles are typed by whoever uploaded the track, so the names there are best
+effort: Audiobox uses the label's own artist and title where the upload carries them, then an
+"Artist - Title" split of the upload's title, and otherwise leaves the artist blank rather
+than guess.
 
 As files arrive, Audiobox matches them against the list, so you can see what you still need,
 then convert and rename the lot in one go.
@@ -113,9 +119,10 @@ the panel, and the app says so on the affected row.
 Pasting a link covers public playlists. To read your **own private Spotify** playlists, sign
 in under **Sign in to read your private playlists**.
 
-There is no equivalent for Apple Music. Apple only issues the keys its API needs to members
-of the paid Apple Developer Program, so Audiobox cannot offer an Apple Music sign-in that a
-normal listener could use. Make the playlist public in Apple Music and paste its link instead.
+There is no equivalent for Apple Music or SoundCloud. Apple only issues the keys its API
+needs to members of the paid Apple Developer Program, and SoundCloud stopped issuing API keys
+altogether, so Audiobox cannot offer a sign-in for either that a normal listener could use.
+Make the playlist public, or for SoundCloud use its private share link, and paste that.
 
 This needs a few minutes of setup once, and the reason is worth knowing: **Spotify allows
 only five signed-in users per developer app**, and the tier that would lift that limit

@@ -88,6 +88,27 @@ The same job for Apple Music, public playlists only, in src/server/apple.js:
   be missing from another storefront. Same `{ id, name, tracks }` shape and the same line
   cleaning as Spotify, so the client treats both alike through `/api/apple/tracks`.
 
+## SoundCloud Playlist to Search List
+
+The same job for SoundCloud sets, in src/server/soundcloud.js, through `/api/soundcloud/tracks`:
+
+- **Paste a set link** (`https://soundcloud.com/<user>/sets/<slug>`, optionally `/s-<token>`
+  for a private set's share link; `on.soundcloud.com` short links are followed). The page's
+  `window.__sc_hydration` block holds the playlist with its first few tracks in full and the
+  rest as IDs. The IDs are filled through `api-v2.soundcloud.com/tracks?ids=` in batches of
+  50, using the client id the page ships in its own scripts, which is the exact call the page
+  makes for itself. Metadata only; nothing is ever downloaded.
+- **No sign-in, and do not try to add one.** SoundCloud closed API key registration years
+  ago. The client id is scraped from the page's assets and cached per process, and refreshed
+  once if SoundCloud rejects it.
+- **Naming is best effort, never invented.** Titles are uploader free text. Order of
+  preference: `publisher_metadata.artist` (with `release_title` when the title has no
+  dash), then an "Artist - Title" split of the title with a catalogue code such as SGR087
+  dropped from either end, else the title alone with the artist blank. `trackToLine()` is the
+  rule and is unit tested. The uploader's username is never used as the artist, because
+  uploaders are usually labels or DJs.
+- The checklist id is `<user>-<slug>`, and the folder takes the set's title as usual.
+
 ## Folders
 
 The app moves tracks through three folders, all set by the user in the Folders panel:

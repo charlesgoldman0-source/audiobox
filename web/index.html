@@ -90,13 +90,13 @@
       </div>
 
       <p class="crate__copy">
-        Turn a Spotify or Apple Music playlist into a copy-paste search list for Soulseek.
-        Paste a playlist link to start, no account needed. Audiobox reads track names only
-        and never downloads anything from either service.
+        Turn a Spotify, Apple Music or SoundCloud playlist into a copy-paste search list
+        for Soulseek. Paste a playlist link to start, no account needed. Audiobox reads track
+        names only and never downloads anything from any of them.
       </p>
 
       <div class="crate__field">
-        <input class="input" id="playlistLink" type="text" placeholder="Paste a Spotify or Apple Music playlist link" autocomplete="off" spellcheck="false" />
+        <input class="input" id="playlistLink" type="text" placeholder="Paste a Spotify, Apple Music or SoundCloud playlist link" autocomplete="off" spellcheck="false" />
         <button class="btn btn--primary" id="loadLinkBtn" type="button">Load tracks</button>
       </div>
 
@@ -111,7 +111,8 @@
                publicly and pasted as a link instead. -->
           <p class="crate__copy signin__note">
             Signing in covers Spotify. Apple Music offers no sign-in without a paid Apple
-            Developer membership, so share an Apple Music playlist publicly and paste its link.
+            Developer membership, and SoundCloud no longer issues API keys, so share a playlist
+            on either of those publicly and paste its link.
           </p>
           <div class="crate__body" id="spotifySetup" hidden>
             <p class="crate__copy">

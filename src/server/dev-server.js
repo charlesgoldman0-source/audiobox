@@ -17,6 +17,7 @@ import { isAudioFile, sanitizeName } from '../engine/naming.js';
 import { defaultConfig } from '../engine/config.js';
 import * as spotify from './spotify.js';
 import * as apple from './apple.js';
+import * as soundcloud from './soundcloud.js';
 import * as library from './library.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -335,6 +336,14 @@ const server = createServer(async (req, res) => {
   // the Spotify route, so the client treats both alike.
   if (pathname === '/api/apple/tracks') {
     try { sendJson(res, 200, await apple.listTracks(url.searchParams.get('id'))); }
+    catch (error) { sendJson(res, 400, { error: error.message }); }
+    return;
+  }
+
+  // SoundCloud: public sets only, read from the set page and the metadata call the page
+  // itself makes. SoundCloud stopped issuing API keys, so there is no sign-in path.
+  if (pathname === '/api/soundcloud/tracks') {
+    try { sendJson(res, 200, await soundcloud.listTracks(url.searchParams.get('id'))); }
     catch (error) { sendJson(res, 400, { error: error.message }); }
     return;
   }

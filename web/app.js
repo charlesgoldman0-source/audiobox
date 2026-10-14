@@ -335,10 +335,13 @@ async function loadPlaylists() {
   } catch { spotifyMessage('Could not load your playlists.'); }
 }
 
-// An Apple Music link is read by the Apple route; anything else goes to Spotify, which
-// also accepts a bare playlist ID from the signed-in picker.
+// Apple Music and SoundCloud links go to their own routes; anything else goes to Spotify,
+// which also accepts a bare playlist ID from the signed-in picker.
 function tracksEndpointFor(ref) {
-  return String(ref).toLowerCase().includes('music.apple.com') ? '/api/apple/tracks' : '/api/spotify/tracks';
+  const link = String(ref).toLowerCase();
+  if (link.includes('music.apple.com')) return '/api/apple/tracks';
+  if (link.includes('soundcloud.com')) return '/api/soundcloud/tracks';
+  return '/api/spotify/tracks';
 }
 
 // Reads one playlist and makes it the active checklist. `ref` is either a playlist ID or a
@@ -372,7 +375,7 @@ function loadTracks() {
 // The no-setup path: paste a link from Spotify's Share menu and read it straight away.
 function loadTracksFromLink() {
   const link = sp.link.value.trim();
-  if (!link) { spotifyMessage('Paste a Spotify or Apple Music playlist link first.'); return; }
+  if (!link) { spotifyMessage('Paste a Spotify, Apple Music or SoundCloud playlist link first.'); return; }
   // The folder is named after the playlist, and a pasted link carries no name, so the
   // checklist name is left empty and the server falls back to the playlist ID.
   return loadPlaylistInto(link, '');
