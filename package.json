@@ -1,0 +1,37 @@
+{
+  "name": "audiobox",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Local DJ track prep: convert FLAC to true AIFF, rewrite embedded CDJ tags, and rename files to match.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/charlesgoldman0-source/audiobox.git"
+  },
+  "bugs": {
+    "url": "https://github.com/charlesgoldman0-source/audiobox/issues"
+  },
+  "keywords": [
+    "dj",
+    "cdj",
+    "flac",
+    "aiff",
+    "ffmpeg",
+    "metadata",
+    "rekordbox"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/cli/start.js",
+    "fixtures": "node test/make-fixtures.mjs",
+    "process": "node src/cli/run.js",
+    "check-ffmpeg": "node src/cli/check-ffmpeg.js",
+    "test": "node test/clean.test.mjs && node test/library-match.test.mjs"
+  },
+  "dependencies": {
+    "music-metadata": "^11.13.0",
+    "node-taglib-sharp": "^6.0.3"
+  }
+}

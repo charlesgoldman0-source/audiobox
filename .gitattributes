@@ -1,0 +1,10 @@
+# Store text as LF so the Mac checkout gets Unix line endings; shell launchers must never be CRLF.
+* text=auto
+*.command text eol=lf
+*.sh text eol=lf
+*.aiff binary
+*.aif binary
+*.flac binary
+*.wav binary
+*.mp3 binary
+*.png binary

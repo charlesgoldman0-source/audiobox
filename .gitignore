@@ -1,0 +1,32 @@
+node_modules/
+
+# Generated test material and engine output
+test/fixtures/in/
+test/fixtures/out/
+
+# Spotify Client ID and tokens (local only, never commit)
+.audiobox-spotify.json
+
+# Folder paths, checklist, and auto-pull setting (local only, and personal:
+# it holds the paths on one machine and whatever playlist was last loaded)
+.audiobox-library.json
+
+# Local certificate for a TLS-intercepting proxy, if one was ever placed here
+.audiobox-cacert.pem
+
+# Local screenshots
+.screens/
+
+# Logs and OS cruft
+*.log
+Thumbs.db
+desktop.ini
+
+# Secrets and OS cruft
+.env
+.DS_Store
+
+# Local-only scratch markers. Nothing in the app reads these; they are ignored so an
+# older working copy cannot commit them by accident.
+.audiobox-personal
+.audiobox-mixwork/

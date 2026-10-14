@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audiobox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="booth">
+    <header class="faceplate">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true"></span>
+        <span class="brand__name">Audiobox</span>
+        <span class="brand__sub">DJ track prep</span>
+      </div>
+
+      <div class="faceplate__status">
+        <!-- The one-off converter, separate from the library folders panel below. Named
+             after its job so the two folder controls cannot be confused. -->
+        <button class="btn btn--ghost" id="chooseBtn" type="button">Convert a folder</button>
+        <div class="source" title="Folder to convert">
+          <span class="source__label">Source</span>
+          <span class="source__path" id="sourcePath">No folder chosen</span>
+        </div>
+        <div class="engine" id="engine" data-state="checking">
+          <span class="engine__dot" aria-hidden="true"></span>
+          <span class="engine__text" id="engineText">Checking FFmpeg</span>
+        </div>
+      </div>
+    </header>
+
+
+    <!-- The three folders the library moves tracks through. Shown as a path because that
+         is what it is: Soulseek writes, Audiobox stages, finished tracks land. -->
+    <section class="crate" aria-label="Folders">
+      <div class="crate__head">
+        <span class="eyebrow">Folders</span>
+        <span class="crate__state" id="foldersState">Loading</span>
+      </div>
+
+      <p class="crate__copy">
+        Audiobox watches the folder Soulseek finishes downloads into, stages what it pulls,
+        and writes finished tracks to the last folder. Set each one to suit your machine.
+      </p>
+
+      <ol class="folders" id="folders">
+        <li class="folder" data-key="soulseekComplete">
+          <span class="folder__step" aria-hidden="true">From</span>
+          <div class="folder__detail">
+            <span class="crate__label">Soulseek finished downloads</span>
+            <span class="folder__path" data-path>Loading</span>
+            <span class="folder__note" data-note hidden></span>
+          </div>
+          <button class="btn btn--ghost btn--sm" type="button" data-pick>Change</button>
+        </li>
+        <li class="folder" data-key="incoming">
+          <span class="folder__step" aria-hidden="true">Through</span>
+          <div class="folder__detail">
+            <span class="crate__label">Staging folder</span>
+            <span class="folder__path" data-path>Loading</span>
+            <span class="folder__note" data-note hidden></span>
+          </div>
+          <button class="btn btn--ghost btn--sm" type="button" data-pick>Change</button>
+        </li>
+        <li class="folder" data-key="ready">
+          <span class="folder__step" aria-hidden="true">To</span>
+          <div class="folder__detail">
+            <span class="crate__label">Finished tracks</span>
+            <span class="folder__path" data-path>Loading</span>
+            <span class="folder__note" data-note hidden></span>
+          </div>
+          <button class="btn btn--ghost btn--sm" type="button" data-pick>Change</button>
+        </li>
+      </ol>
+
+      <p class="crate__msg" id="foldersMsg" hidden></p>
+    </section>
+
+    <section class="crate" aria-label="Spotify playlist to search list">
+      <div class="crate__head">
+        <span class="eyebrow">Playlist to search list</span>
+        <span class="crate__state" id="spotifyState">Ready</span>
+      </div>
+
+      <p class="crate__copy">
+        Turn a Spotify playlist into a copy-paste search list for Soulseek. Paste a playlist
+        link to start, no account needed. Audiobox reads track names only and never
+        downloads anything from Spotify.
+      </p>
+
+      <div class="crate__field">
+        <input class="input" id="playlistLink" type="text" placeholder="Paste a Spotify playlist link" autocomplete="off" spellcheck="false" />
+        <button class="btn btn--primary" id="loadLinkBtn" type="button">Load tracks</button>
+      </div>
+
+      <!-- Signing in is optional and only unlocks private playlists. Spotify caps an app at
+           five signed-in users, so each person uses their own free Client ID. -->
+      <details class="signin" id="signin">
+        <summary class="signin__summary">Sign in to read your private playlists</summary>
+
+        <div class="signin__body">
+          <div class="crate__body" id="spotifySetup" hidden>
+            <p class="crate__copy">
+              Spotify allows only five signed-in users per app, so Audiobox cannot ship a
+              shared login. Create your own free app on the Spotify developer dashboard, add
+              the redirect URL below to it, then paste its Client ID here. This takes a few
+              minutes once. Creating an app needs Spotify Premium.
+            </p>
+            <div class="crate__redirect">
+              <span class="crate__label">Redirect URL for the Spotify app</span>
+              <div class="crate__redirect-row">
+                <code id="spotifyRedirect">http://127.0.0.1:4848/api/spotify/callback</code>
+                <button class="btn btn--ghost btn--sm" id="copyRedirectBtn" type="button">Copy</button>
+              </div>
+            </div>
+            <div class="crate__field">
+              <input class="input" id="clientIdInput" type="text" placeholder="Paste your Spotify Client ID" autocomplete="off" spellcheck="false" />
+              <button class="btn btn--ghost" id="saveClientBtn" type="button">Save</button>
+            </div>
+          </div>
+
+          <div class="crate__body" id="spotifyConnect" hidden>
+            <button class="btn btn--primary" id="connectBtn" type="button">Connect Spotify</button>
+            <button class="btn btn--ghost btn--sm" id="reconfigBtn" type="button">Change Client ID</button>
+          </div>
+
+          <div class="crate__body" id="spotifyBrowse" hidden>
+            <div class="crate__field">
+              <select class="input" id="playlistSelect" aria-label="Choose a playlist"></select>
+              <button class="btn btn--ghost" id="loadTracksBtn" type="button">Load tracks</button>
+              <button class="btn btn--ghost btn--sm" id="disconnectBtn" type="button">Disconnect</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="crate__tracks-head" id="tracksHead" hidden>
+        <span id="tracksCount">0 tracks</span>
+        <button class="btn btn--primary btn--sm" id="copyAllBtn" type="button">Copy all</button>
+      </div>
+      <ol class="searchlist" id="searchList"></ol>
+
+      <div class="libbar" id="libBar" hidden>
+        <div class="libbar__row">
+          <span class="libbar__count" id="haveCount">Have 0 of 0</span>
+          <label class="switch">
+            <input type="checkbox" id="autoPullToggle" />
+            <span class="switch__track" aria-hidden="true"></span>
+            <span class="switch__label">Auto-pull from Soulseek</span>
+          </label>
+          <button class="btn btn--ghost btn--sm" id="pullNowBtn" type="button">Pull now</button>
+        </div>
+        <div class="libbar__row">
+          <span class="libbar__meta" id="libMeta">0 pulled, 0 unmatched</span>
+          <button class="btn btn--ghost btn--sm" id="convertBtn" type="button">Convert pulled tracks</button>
+          <button class="btn btn--primary btn--sm" id="zipBtn" type="button">Download zip</button>
+        </div>
+      </div>
+
+      <p class="crate__msg" id="spotifyMsg" hidden></p>
+    </section>
+
+    <main class="console">
+      <aside class="rail">
+        <div class="rail__block">
+          <div class="rail__head">
+            <h2 class="rail__title">Queue</h2>
+            <span class="rail__count" id="queueCount">0</span>
+          </div>
+          <ul class="tracklist" id="queueList"></ul>
+          <p class="rail__hint" id="queueHint">Choose a folder to load tracks.</p>
+        </div>
+
+        <div class="rail__block rail__block--flagged">
+          <div class="rail__head">
+            <h2 class="rail__title">Flagged</h2>
+            <span class="rail__count rail__count--warn" id="flaggedCount">0</span>
+          </div>
+          <ul class="tracklist tracklist--flagged" id="flaggedList"></ul>
+          <p class="rail__hint">Blank or unclear tags. Audiobox sets these aside instead of guessing.</p>
+        </div>
+      </aside>
+
+      <section class="stage" aria-label="Processing">
+        <div class="stage__head">
+          <span class="eyebrow" id="stageState">Idle</span>
+          <button class="btn btn--primary" id="processBtn" type="button" disabled>Process</button>
+        </div>
+
+        <div class="nameplate">
+          <span class="nameplate__from" id="trackFrom">Choose a folder of downloaded tracks to begin.</span>
+          <span class="nameplate__to" id="trackTo"></span>
+        </div>
+
+        <ol class="chain" id="chain">
+          <li class="station" data-step="convert">
+            <span class="station__index">01</span>
+            <span class="station__name">Convert</span>
+            <span class="station__note">FLAC to AIFF</span>
+            <span class="station__pip" aria-hidden="true"></span>
+          </li>
+          <li class="station" data-step="tag">
+            <span class="station__index">02</span>
+            <span class="station__name">Tag</span>
+            <span class="station__note">Artist and title</span>
+            <span class="station__pip" aria-hidden="true"></span>
+          </li>
+          <li class="station" data-step="rename">
+            <span class="station__index">03</span>
+            <span class="station__name">Rename</span>
+            <span class="station__note">Match the tags</span>
+            <span class="station__pip" aria-hidden="true"></span>
+          </li>
+          <li class="station station--soon" data-step="analyse">
+            <span class="station__index">04</span>
+            <span class="station__name">Analyse</span>
+            <span class="station__note">BPM, key, energy</span>
+            <span class="station__pip" aria-hidden="true"></span>
+          </li>
+        </ol>
+
+        <div class="screen" id="screen">
+          <div class="waveform" id="waveform" aria-hidden="true"></div>
+          <div class="readout">
+            <div class="metric">
+              <span class="metric__label">Format</span>
+              <span class="metric__value metric__value--mid" id="mFormat">--</span>
+            </div>
+            <div class="metric">
+              <span class="metric__label">Audio</span>
+              <span class="metric__value metric__value--mid" id="mAudio">--</span>
+            </div>
+            <div class="metric">
+              <span class="metric__label">Verify</span>
+              <span class="metric__value metric__value--mid" id="mVerify">--</span>
+            </div>
+            <div class="metric metric--wide">
+              <span class="metric__label">Artist</span>
+              <span class="metric__value metric__value--text" id="mArtist">--</span>
+            </div>
+            <div class="metric metric--wide">
+              <span class="metric__label">Title</span>
+              <span class="metric__value metric__value--text" id="mTitle">--</span>
+            </div>
+            <div class="metric metric--wide">
+              <span class="metric__label">Saved as</span>
+              <span class="metric__value metric__value--text" id="mSaved">--</span>
+            </div>
+          </div>
+          <p class="screen__note" id="analyseNote">BPM, key, and energy arrive in the next step.</p>
+        </div>
+      </section>
+    </main>
+
+  </div>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
