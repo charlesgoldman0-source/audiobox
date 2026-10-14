@@ -28,7 +28,7 @@
     "fixtures": "node test/make-fixtures.mjs",
     "process": "node src/cli/run.js",
     "check-ffmpeg": "node src/cli/check-ffmpeg.js",
-    "test": "node test/clean.test.mjs && node test/library-match.test.mjs"
+    "test": "node test/clean.test.mjs && node test/library-match.test.mjs && node test/apple.test.mjs"
   },
   "dependencies": {
     "music-metadata": "^11.13.0",

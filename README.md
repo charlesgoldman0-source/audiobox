@@ -74,11 +74,14 @@ folder inside it.
 
 ### Work from a playlist
 
-The **Playlist to search list** panel turns a Spotify playlist into a copy-paste list for
-searching on Soulseek, one `Artist - Title` per line, with a copy button on each.
+The **Playlist to search list** panel turns a Spotify or Apple Music playlist into a
+copy-paste list for searching on Soulseek, one `Artist - Title` per line, with a copy button
+on each.
 
 Paste a playlist link and press **Load tracks**. No account and no setup are needed for a
-public playlist.
+public playlist on either service. In Spotify, copy the link from the playlist's Share menu.
+In Apple Music, open the playlist, choose Share, then Copy Link; a playlist you made yourself
+has to be shared publicly for the link to work.
 
 As files arrive, Audiobox matches them against the list, so you can see what you still need,
 then convert and rename the lot in one go.
@@ -107,8 +110,12 @@ the panel, and the app says so on the affected row.
 
 ## Reading your private playlists (optional)
 
-Pasting a link covers public playlists. To read your **own private** playlists, sign in under
-**Sign in to read your private playlists**.
+Pasting a link covers public playlists. To read your **own private Spotify** playlists, sign
+in under **Sign in to read your private playlists**.
+
+There is no equivalent for Apple Music. Apple only issues the keys its API needs to members
+of the paid Apple Developer Program, so Audiobox cannot offer an Apple Music sign-in that a
+normal listener could use. Make the playlist public in Apple Music and paste its link instead.
 
 This needs a few minutes of setup once, and the reason is worth knowing: **Spotify allows
 only five signed-in users per developer app**, and the tier that would lift that limit

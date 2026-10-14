@@ -83,20 +83,20 @@
       <p class="crate__msg" id="foldersMsg" hidden></p>
     </section>
 
-    <section class="crate" aria-label="Spotify playlist to search list">
+    <section class="crate" aria-label="Playlist to search list">
       <div class="crate__head">
         <span class="eyebrow">Playlist to search list</span>
         <span class="crate__state" id="spotifyState">Ready</span>
       </div>
 
       <p class="crate__copy">
-        Turn a Spotify playlist into a copy-paste search list for Soulseek. Paste a playlist
-        link to start, no account needed. Audiobox reads track names only and never
-        downloads anything from Spotify.
+        Turn a Spotify or Apple Music playlist into a copy-paste search list for Soulseek.
+        Paste a playlist link to start, no account needed. Audiobox reads track names only
+        and never downloads anything from either service.
       </p>
 
       <div class="crate__field">
-        <input class="input" id="playlistLink" type="text" placeholder="Paste a Spotify playlist link" autocomplete="off" spellcheck="false" />
+        <input class="input" id="playlistLink" type="text" placeholder="Paste a Spotify or Apple Music playlist link" autocomplete="off" spellcheck="false" />
         <button class="btn btn--primary" id="loadLinkBtn" type="button">Load tracks</button>
       </div>
 
@@ -106,6 +106,13 @@
         <summary class="signin__summary">Sign in to read your private playlists</summary>
 
         <div class="signin__body">
+          <!-- Apple Music has no sign-in path here: Apple's API hands out tokens only to paid
+               Apple Developer Program members, so a private Apple Music playlist must be shared
+               publicly and pasted as a link instead. -->
+          <p class="crate__copy signin__note">
+            Signing in covers Spotify. Apple Music offers no sign-in without a paid Apple
+            Developer membership, so share an Apple Music playlist publicly and paste its link.
+          </p>
           <div class="crate__body" id="spotifySetup" hidden>
             <p class="crate__copy">
               Spotify allows only five signed-in users per app, so Audiobox cannot ship a

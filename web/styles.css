@@ -1073,3 +1073,6 @@ select.input { cursor: pointer; }
     transition-duration: 0.001ms !important;
   }
 }
+
+/* The Apple Music note sits above whichever sign-in state is showing. */
+.signin__note { margin-bottom: 14px; }

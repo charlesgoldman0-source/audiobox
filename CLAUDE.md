@@ -71,6 +71,23 @@ add write scopes: nothing in the app writes to a Spotify account.
 the staging and finished folders are named from it, and a pasted URL is not a usable folder
 name.
 
+## Apple Music Playlist to Search List
+
+The same job for Apple Music, public playlists only, in src/server/apple.js:
+
+- **Paste a playlist link.** The track names come from the public page at
+  `music.apple.com/<storefront>/playlist/<id>`: the `serialized-server-data` JSON block
+  carries each track's `title` and `artistName` in order, and the `schema:music-playlist`
+  ld+json block carries the playlist name and track count, which is used as a cross-check.
+  Needs no account. A user-made playlist must be shared publicly or the page is a 404.
+- **No sign-in, and do not try to add one.** Apple's API needs a developer token signed
+  with a MusicKit key, which Apple issues only to paid Apple Developer Program members, so
+  no listener cloning the app could use it. Unofficial web-player tokens are off limits.
+- Links look like `https://music.apple.com/za/playlist/<slug>/pl.u-<id>` (user made) or
+  `.../pl.<hex>` (editorial). The storefront in the link is kept, because a playlist can
+  be missing from another storefront. Same `{ id, name, tracks }` shape and the same line
+  cleaning as Spotify, so the client treats both alike through `/api/apple/tracks`.
+
 ## Folders
 
 The app moves tracks through three folders, all set by the user in the Folders panel:

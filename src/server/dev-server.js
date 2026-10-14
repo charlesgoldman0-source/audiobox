@@ -16,6 +16,7 @@ import { planFile, applyFile, sweepTempFiles } from '../engine/process.js';
 import { isAudioFile, sanitizeName } from '../engine/naming.js';
 import { defaultConfig } from '../engine/config.js';
 import * as spotify from './spotify.js';
+import * as apple from './apple.js';
 import * as library from './library.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -325,6 +326,15 @@ const server = createServer(async (req, res) => {
   // resolved ID and the playlist name, which the client stores as the active checklist.
   if (pathname === '/api/spotify/tracks') {
     try { sendJson(res, 200, await spotify.listTracks(url.searchParams.get('id'))); }
+    catch (error) { sendJson(res, 400, { error: error.message }); }
+    return;
+  }
+
+  // Apple Music: the public playlist page only. There is no sign-in path, because Apple's
+  // API issues tokens only to paid Apple Developer Program members. Same response shape as
+  // the Spotify route, so the client treats both alike.
+  if (pathname === '/api/apple/tracks') {
+    try { sendJson(res, 200, await apple.listTracks(url.searchParams.get('id'))); }
     catch (error) { sendJson(res, 400, { error: error.message }); }
     return;
   }
