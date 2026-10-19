@@ -34,6 +34,8 @@ The app takes a folder of downloaded tracks and, in one run:
 - **No audio recognition or mix identification.** Do not add track identification, mix
   scanning, or anything that calls a recognition service. It would mean downloading audio and
   using an endpoint not offered for that purpose, neither of which belongs in a published app.
+  The owner keeps the pre-1.0 build that had this, for personal use only, in a separate
+  folder outside this repository (Audiobox-personal, port 4849). Never merge it back here.
 - The app can only reformat metadata that already exists in the file. If a downloaded file
   has blank or clearly wrong tags, the app must NOT invent data. It either falls back to
   parsing the filename (if that toggle is on) or flags the file for manual fixing. This
