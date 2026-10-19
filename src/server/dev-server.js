@@ -348,6 +348,20 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // Creates a private Spotify playlist from the current list. The app's only write to a
+  // Spotify account, and only on the user's click.
+  if (pathname === '/api/spotify/playlist' && req.method === 'POST') {
+    try {
+      const body = await readBody(req);
+      const tracks = Array.isArray(body.tracks) ? body.tracks : [];
+      if (!tracks.length) { sendJson(res, 400, { error: 'Load a list first.' }); return; }
+      sendJson(res, 200, await spotify.createPlaylistFromTracks(String(body.name || ''), tracks));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
   if (pathname === '/api/spotify/disconnect' && req.method === 'POST') {
     spotify.disconnect();
     sendJson(res, 200, spotify.getState());

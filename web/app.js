@@ -281,6 +281,58 @@ function spotifyMessage(text, kind) {
   sp.msg.setAttribute('data-kind', kind || 'warn');
 }
 
+// A message that ends in a link, for "open the playlist" or "reconnect Spotify".
+function spotifyMessageWithLink(text, href, label, kind, newTab) {
+  spotifyMessage(text, kind);
+  const a = document.createElement('a');
+  a.href = href;
+  a.textContent = label;
+  if (newTab) { a.target = '_blank'; a.rel = 'noopener'; }
+  sp.msg.append(' ', a);
+}
+
+// Builds a private Spotify playlist from the current list, whatever services the lines came
+// from. The app's only write to a Spotify account, and only on this click. Tracks not on
+// Spotify are named so they can still be searched by hand; nothing is guessed.
+async function makeSpotifyPlaylist() {
+  let status = {};
+  try { status = await (await fetch('/api/spotify/status')).json(); } catch { /* treated as not signed in */ }
+  if (!status.connected) {
+    spotifyMessage('Making a playlist needs your Spotify account. Sign in under "Sign in to read your private playlists" first.');
+    return;
+  }
+  if (!status.canWrite) {
+    spotifyMessageWithLink('Spotify needs one more permission to create playlists.', '/api/spotify/login', 'Reconnect Spotify', 'warn', false);
+    return;
+  }
+  const btn = el('spotifyPlaylistBtn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Making playlist...';
+  spotifyMessage('Looking each track up on Spotify.', 'ok');
+  try {
+    const state = await (await fetch('/api/library/state')).json();
+    const tracks = (state.checklist || []).map((t) => ({ artist: t.artist || '', title: t.title || '', line: t.line || '' }));
+    const name = (state.activePlaylist && state.activePlaylist.name) || 'Audiobox list';
+    const res = await fetch('/api/spotify/playlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, tracks }),
+    });
+    const data = await res.json();
+    if (!res.ok) { spotifyMessage(data.error || 'Could not make the playlist.'); return; }
+    const missing = data.missing || [];
+    const shown = missing.slice(0, 3).join('; ') + (missing.length > 3 ? '; and more' : '');
+    const tail = missing.length ? ` ${missing.length} not on Spotify: ${shown}.` : '';
+    spotifyMessageWithLink(`Added ${data.matched} of ${data.total} to "${data.name}".${tail}`, data.url, 'Open in Spotify', 'ok', true);
+  } catch {
+    spotifyMessage('Could not reach Spotify.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
 async function copyText(text, btn) {
   try {
     await navigator.clipboard.writeText(text);
@@ -533,6 +585,7 @@ el('disconnectBtn').addEventListener('click', async () => {
 });
 el('loadTracksBtn').addEventListener('click', loadTracks);
 el('copyAllBtn').addEventListener('click', () => copyText(sp.list.dataset.lines || '', el('copyAllBtn')));
+el('spotifyPlaylistBtn').addEventListener('click', makeSpotifyPlaylist);
 el('copyRedirectBtn').addEventListener('click', () => copyText(el('spotifyRedirect').textContent, el('copyRedirectBtn')));
 
 el('autoPullToggle').addEventListener('change', async (event) => {

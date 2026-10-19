@@ -750,8 +750,9 @@ body::before {
 }
 select.input { cursor: pointer; }
 
-.crate__tracks-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding-top: 6px; }
-#tracksCount { font-family: var(--font-mono); font-size: 0.78rem; color: var(--bone-dim); }
+/* The count sits left; the buttons group on the right, however many there are. */
+.crate__tracks-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: 6px; }
+#tracksCount { font-family: var(--font-mono); font-size: 0.78rem; color: var(--bone-dim); margin-right: auto; }
 
 .searchlist {
   list-style: none;
@@ -1076,3 +1077,9 @@ select.input { cursor: pointer; }
 
 /* The Apple Music note sits above whichever sign-in state is showing. */
 .signin__note { margin-bottom: 14px; }
+
+/* A link inside a message, for "Open in Spotify" or "Reconnect Spotify". */
+.crate__msg a { color: var(--screen-cyan); text-decoration: underline; text-underline-offset: 2px; }
+.crate__msg a:hover { color: var(--bone); }
+.crate__msg a:active { opacity: 0.8; }
+.crate__msg a:focus-visible { outline: 2px solid var(--screen-cyan); outline-offset: 2px; border-radius: 2px; }

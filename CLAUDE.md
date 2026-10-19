@@ -66,8 +66,17 @@ Development Mode does retain `GET /me/playlists` and `GET /playlists/{id}/items`
 `items` returned only for playlists the signed-in user owns or collaborates on. Verified
 against Spotify's February 2026 migration guide.
 
-Requested scopes are read-only (`playlist-read-private playlist-read-collaborative`). Do not
-add write scopes: nothing in the app writes to a Spotify account.
+Requested scopes are `playlist-read-private playlist-read-collaborative
+playlist-modify-private`. The modify scope exists for exactly one action: **Make Spotify
+playlist** creates a private playlist on the signed-in account from the current list, when the
+user clicks it. Nothing else on the account is ever changed or deleted, and no other write
+scope may be added. Matching is by name through `matchesTrack()` in src/server/spotify.js,
+which requires both the title and the artist to share words, so Spotify's best guess for an
+unknown underground title is never added; unmatched lines are reported, not invented. Someone
+who signed in before the modify scope existed must reconnect once; `getState().canWrite`
+says whether the stored token holds it. Creation uses `POST /me/playlists` and
+`POST /playlists/{id}/items`; the older `/users/{id}/playlists` and `/tracks` routes
+return 403 for Development Mode apps.
 
 `listTracks` returns `{ id, name, tracks }`. The resolved bare playlist ID matters, because
 the staging and finished folders are named from it, and a pasted URL is not a usable folder
@@ -214,7 +223,8 @@ paths and data, layered colour-tinted shadows, and a single `--ease`.
 - Do not reintroduce audio recognition or mix identification.
 - Do not invent metadata. Reformat or fall back or flag, per the configured behaviour.
 - Do not rename a file without also fixing its embedded tags. Tags are the priority.
-- Do not request Spotify write scopes.
+- The only Spotify write is creating a private playlist the user asked for. Never modify or
+  delete anything on a Spotify account, and never add another write scope.
 - Do not hardcode a path from one machine or user profile.
 - Do not use `transition-all`.
 - Do not use default Tailwind blue or indigo as the primary color.

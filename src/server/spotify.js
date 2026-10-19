@@ -19,9 +19,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 const STORE = join(here, '..', '..', '.audiobox-spotify.json');
 
 export const REDIRECT_URI = 'http://127.0.0.1:4848/api/spotify/callback';
-// Read-only. Audiobox reads playlist names to build a search list and nothing else, so it
-// never asks the account for write access.
-const SCOPES = 'playlist-read-private playlist-read-collaborative';
+// Read scopes for the search list, plus the one write the app ever makes: creating a private
+// playlist from the current list when the user asks for it. Someone who signed in before that
+// scope existed is asked to reconnect once; getState().canWrite says whether it is held.
+const SCOPES = 'playlist-read-private playlist-read-collaborative playlist-modify-private';
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let pending = null; // { verifier, state } for the in-flight auth attempt
 
@@ -43,6 +46,7 @@ export function getState() {
   return {
     configured: Boolean(data.clientId),
     connected: Boolean(data.refreshToken),
+    canWrite: /playlist-modify-private/.test(data.scope || ''),
   };
 }
 
@@ -147,13 +151,31 @@ async function failure(res, method, path) {
   return new Error(`Spotify request failed${detail}.`);
 }
 
-async function api(path) {
+async function api(path, attempt = 0) {
   const token = await accessToken();
   const res = await fetch(`https://api.spotify.com/v1${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  // A long list means many searches in a row; honour Spotify's pause instead of failing.
+  if (res.status === 429 && attempt < 2) {
+    const wait = Math.min(Number(res.headers.get('retry-after') || 2), 15);
+    await sleep(wait * 1000);
+    return api(path, attempt + 1);
+  }
   if (!res.ok) throw await failure(res, 'GET', path);
   return res.json();
+}
+
+async function apiSend(method, path, body) {
+  const token = await accessToken();
+  const res = await fetch(`https://api.spotify.com/v1${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw await failure(res, method, path);
+  const text = await res.text();
+  return text ? JSON.parse(text) : {};
 }
 
 function nextPath(next) {
@@ -176,6 +198,88 @@ export function normalizeSpotifyTrack(artistStr, rawTitle) {
   }
 
   return { artist: dropBracketCredits(artists.join(', '), title), title };
+}
+
+// ---- Playlist creation: the one write the app makes ----
+
+// Accents are split off by NFKD and then deleted (not replaced), so "ADÉLA" becomes
+// "adela" rather than "ade la". The combining-mark range is built from code points to keep
+// the source plain ASCII.
+const COMBINING_MARKS_RE = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g');
+
+function tokenize(value) {
+  return new Set(String(value || '').toLowerCase().normalize('NFKD').replace(COMBINING_MARKS_RE, '')
+    .replace(/[^a-z0-9 ]+/g, ' ').split(' ').filter((w) => w.length > 1));
+}
+
+function titleTokens(value) {
+  return tokenize(String(value || '').replace(/\s*[(\[][^)\]]*[)\]]/g, ' '));
+}
+
+function overlap(a, b, denominator) {
+  if (!a.size || !b.size) return 0;
+  let shared = 0;
+  for (const w of a) if (b.has(w)) shared += 1;
+  return shared / denominator(a.size, b.size);
+}
+
+// Decides whether a search result is the track on the list. Both the title and the artist
+// have to share words, so Spotify's "best guess" for an underground title cannot slip in as a
+// different record. A line with no artist (some SoundCloud uploads) needs the title alone to
+// match almost completely. Exported for tests.
+export function matchesTrack(track, item) {
+  const title = titleTokens(track && track.title);
+  const candidate = titleTokens(item && item.name);
+  const artist = String((track && track.artist) || '').trim();
+  if (!artist) return overlap(title, candidate, Math.max) >= 0.6;
+  if (overlap(title, candidate, Math.min) < 0.5) return false;
+  const names = ((item && item.artists) || []).map((a) => a && a.name).filter(Boolean).join(' ');
+  return overlap(tokenize(artist), tokenize(names), Math.min) >= 0.5;
+}
+
+async function findTrackUri(track) {
+  const query = [track.artist, track.title].map((v) => String(v || '').trim()).filter(Boolean).join(' ');
+  if (!query) return null;
+  const data = await api(`/search?q=${encodeURIComponent(query)}&type=track&limit=5`);
+  const items = (data.tracks && data.tracks.items) || [];
+  const hit = items.find((item) => matchesTrack(track, item));
+  return hit ? hit.uri : null;
+}
+
+// Creates a private playlist on the signed-in account from the current list. Tracks that
+// are not on Spotify are reported by line so they can still be searched by hand; nothing is
+// guessed. Uses /me/playlists and /playlists/{id}/items, the routes Spotify kept for
+// Development Mode apps (the older /users/{id}/playlists and /tracks forms return 403).
+export async function createPlaylistFromTracks(name, tracks) {
+  if (!getState().canWrite) throw new Error('Spotify needs one more permission to create playlists. Reconnect Spotify, then try again.');
+  const uris = [];
+  const seen = new Set();
+  const missing = [];
+  for (const track of tracks) {
+    let uri = null;
+    try { uri = await findTrackUri(track); } catch (error) {
+      console.error(`[spotify] search failed for "${track.line || track.title}": ${error.message}`);
+    }
+    if (uri && !seen.has(uri)) { seen.add(uri); uris.push(uri); }
+    else if (!uri) missing.push(track.line || `${track.artist} - ${track.title}`.trim());
+  }
+  if (!uris.length) throw new Error('None of these tracks were found on Spotify, so no playlist was made.');
+
+  const playlist = await apiSend('POST', '/me/playlists', {
+    name: String(name || '').trim() || 'Audiobox list',
+    public: false,
+    description: 'Made by Audiobox from a search list. Tracks not on Spotify were left out.',
+  });
+  for (let i = 0; i < uris.length; i += 100) {
+    await apiSend('POST', `/playlists/${playlist.id}/items`, { uris: uris.slice(i, i + 100) });
+  }
+  return {
+    url: (playlist.external_urls && playlist.external_urls.spotify) || '',
+    name: playlist.name,
+    matched: uris.length,
+    total: tracks.length,
+    missing,
+  };
 }
 
 export async function listPlaylists() {

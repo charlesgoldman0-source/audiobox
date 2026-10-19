@@ -106,6 +106,13 @@ In Apple Music, open the playlist, choose Share, then Copy Link; a playlist you 
 has to be shared publicly for the link to work. On SoundCloud, open the set, choose Share,
 then Copy Link; a private set works through its own share link.
 
+**Make Spotify playlist** turns the list you have built, from any mix of the three services,
+into a private playlist on your own Spotify account, so you can listen through it before
+searching. It needs the Spotify sign-in below, and if you signed in before this button existed
+it asks you to reconnect once to allow playlist creation. Tracks that are not on Spotify are
+listed by name and left out, never replaced with a guess. There is no equivalent for Apple
+Music or SoundCloud, for the same reasons that block their sign-in.
+
 A single song's link works too, from any of the three. It is added to the list you already
 have rather than replacing it, so a few links pasted one after another build up a list of
 their own. Lines already on the list are not added twice.
