@@ -140,13 +140,25 @@ export function setVinyl(line, on) {
 
 function ensureDir(dir) { if (!existsSync(dir)) mkdirSync(dir, { recursive: true }); }
 
-function moveFile(src, dest) {
-  try {
-    renameSync(src, dest);
-  } catch (err) {
-    if (err.code === 'EXDEV') { copyFileSync(src, dest); rmSync(src, { force: true }); }
-    else throw err;
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// A finished download can still be held open for a moment by the download client, a virus
+// scanner or an indexer, which makes the move fail with EPERM or EBUSY. Retry briefly before
+// giving up; a different drive gets a copy and delete instead of a rename.
+async function moveFile(src, dest) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      renameSync(src, dest);
+      return;
+    } catch (err) {
+      if (err.code === 'EXDEV') { copyFileSync(src, dest); rmSync(src, { force: true }); return; }
+      if (!['EPERM', 'EBUSY', 'EACCES'].includes(err.code)) throw err;
+      lastError = err;
+      await pause(250 * (attempt + 1));
+    }
   }
+  throw lastError;
 }
 
 function freeDest(dir, name) {
@@ -224,7 +236,7 @@ export async function ingestOnce() {
       try {
         if (now - statSync(full).mtimeMs < STABLE_MS) { skipped.push({ name: entry.name, reason: 'still being written' }); continue; }
         const dest = freeDest(target, entry.name);
-        moveFile(full, dest);
+        await moveFile(full, dest);
         moved.push(basename(dest));
       } catch (err) { skipped.push({ name: entry.name, reason: 'could not be moved (' + (err.code || err.message) + ')' }); }
       continue;
@@ -241,7 +253,7 @@ export async function ingestOnce() {
     for (const file of audio) {
       try {
         const dest = freeDest(target, basename(file));
-        moveFile(file, dest);
+        await moveFile(file, dest);
         moved.push(basename(dest));
       } catch (err) { allMoved = false; skipped.push({ name: basename(file), reason: 'could not be moved (' + (err.code || err.message) + ')' }); }
     }
@@ -339,7 +351,7 @@ async function migrateLoose(cfg, activeDir) {
     const matched = trackTokens.some((tt) => jaccard(tt, fileTok) >= 0.45);
     const destDir = matched ? activeDir : unsortedDir;
     ensureDir(destDir);
-    try { moveFile(full, freeDest(destDir, name)); } catch { /* skip locked */ }
+    try { await moveFile(full, freeDest(destDir, name)); } catch { /* skip locked */ }
   }
 }
 
