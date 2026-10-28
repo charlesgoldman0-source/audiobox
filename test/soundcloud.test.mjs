@@ -51,6 +51,8 @@ test('strips promo wording and falls back to the uploader only when it looks lik
   assert.equal(trackToLine({ title: 'Neem De Tijd', user: { username: 'Across Boundaries' } }).line, 'Across Boundaries - Neem De Tijd');
   assert.equal(trackToLine({ title: 'Night Drive', user: { username: 'Solid Grooves Records' } }).artist, '');
   assert.equal(trackToLine({ title: 'Gaskin - Closer', user: { username: 'Some Label Records' } }).line, 'Gaskin - Closer');
+  assert.equal(trackToLine({ title: 'Niclas, lerg - Ground Zero (Fedo Remix)', publisher_metadata: { artist: 'Junjo Records' } }).line, 'Niclas, lerg - Ground Zero (Fedo Remix)');
+  assert.equal(trackToLine({ title: 'Ground Zero (Fedo Remix)', publisher_metadata: { artist: 'Junjo Records' }, user: { username: 'Junjo Records' } }).artist, '');
   assert.equal(trackToLine({ title: 'My Paradise **FREE DL**', publisher_metadata: { artist: 'The Trip' } }).line, 'The Trip - My Paradise');
   assert.equal(trackToLine({ title: 'Night Drive (Out Now on Solid Grooves)', publisher_metadata: { artist: 'Someone' } }).line, 'Someone - Night Drive');
 });

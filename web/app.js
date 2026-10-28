@@ -598,8 +598,16 @@ el('pullNowBtn').addEventListener('click', async () => {
   const btn = el('pullNowBtn');
   btn.disabled = true;
   btn.textContent = 'Pulling';
-  try { await fetch('/api/library/pull', { method: 'POST' }); await pollLibrary(); }
-  finally { btn.disabled = false; btn.textContent = 'Pull now'; }
+  try {
+    const result = await (await fetch('/api/library/pull', { method: 'POST' })).json();
+    await pollLibrary();
+    // Say what happened, especially when nothing moved: a silent pull is a mystery.
+    const moved = (result.moved || []).length;
+    const skipped = result.skipped || [];
+    if (result.error) spotifyMessage(result.error);
+    else if (skipped.length) spotifyMessage(`Pulled ${moved}. Left behind: ${skipped.map((x) => `${x.name} (${x.reason})`).join('; ')}.`, moved ? 'ok' : 'warn');
+    else spotifyMessage(moved ? `Pulled ${moved} file${moved === 1 ? '' : 's'}.` : 'Nothing finished to pull yet.', 'ok');
+  } finally { btn.disabled = false; btn.textContent = 'Pull now'; }
 });
 el('convertBtn').addEventListener('click', convertLibrary);
 el('zipBtn').addEventListener('click', () => { window.location.href = '/api/library/zip'; });

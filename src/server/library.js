@@ -213,6 +213,7 @@ export async function ingestOnce() {
 
   const moved = [];
   const removed = [];
+  const skipped = []; // { name, reason } so a pull that takes nothing can say why
   const now = Date.now();
 
   for (const entry of readdirSync(cfg.soulseekComplete, { withFileTypes: true })) {
@@ -221,17 +222,17 @@ export async function ingestOnce() {
     if (!entry.isDirectory()) {
       if (!isAudioFile(entry.name)) continue;
       try {
-        if (now - statSync(full).mtimeMs < STABLE_MS) continue;
+        if (now - statSync(full).mtimeMs < STABLE_MS) { skipped.push({ name: entry.name, reason: 'still being written' }); continue; }
         const dest = freeDest(target, entry.name);
         moveFile(full, dest);
         moved.push(basename(dest));
-      } catch { /* skip locked file */ }
+      } catch (err) { skipped.push({ name: entry.name, reason: 'could not be moved (' + (err.code || err.message) + ')' }); }
       continue;
     }
 
     let latest;
-    try { latest = latestMtime(full); } catch { continue; }
-    if (now - latest < STABLE_MS) continue; // still downloading
+    try { latest = latestMtime(full); } catch (err) { skipped.push({ name: entry.name, reason: 'could not be read (' + (err.code || err.message) + ')' }); continue; }
+    if (now - latest < STABLE_MS) { skipped.push({ name: entry.name, reason: 'still being written' }); continue; }
 
     const audio = collectAudio(full);
     if (!audio.length) continue; // nothing to take; leave the folder
@@ -242,7 +243,7 @@ export async function ingestOnce() {
         const dest = freeDest(target, basename(file));
         moveFile(file, dest);
         moved.push(basename(dest));
-      } catch { allMoved = false; }
+      } catch (err) { allMoved = false; skipped.push({ name: basename(file), reason: 'could not be moved (' + (err.code || err.message) + ')' }); }
     }
     if (allMoved) {
       const ok = await recycle(full);
@@ -250,7 +251,7 @@ export async function ingestOnce() {
     }
   }
 
-  return { moved, removed };
+  return { moved, removed, skipped };
 }
 
 // ---- matching ----

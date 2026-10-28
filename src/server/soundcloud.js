@@ -79,7 +79,9 @@ function uploaderArtist(track) {
 // uploader's own name. Nothing is ever made up; a line with no artist is still possible.
 export function trackToLine(track) {
   const pub = (track && track.publisher_metadata) || {};
+  // Labels sometimes put their own name in the artist field; that is not an artist either.
   let artist = tidy(pub.artist);
+  if (CHANNEL_RE.test(artist)) artist = '';
   let title = tidy(track && track.title).replace(SC_PREFIX_RE, '').replace(SC_BRACKET_RE, ' ').trim();
 
   // A dash with a space on at least one side is the uploader's "Artist - Title" separator;

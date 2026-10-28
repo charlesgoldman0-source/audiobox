@@ -7,7 +7,7 @@
 // existing unrelated output is never overwritten.
 
 import { basename, extname, dirname, join } from 'node:path';
-import { renameSync, existsSync, rmSync, readdirSync } from 'node:fs';
+import { copyFileSync, renameSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { readTags, writeTags } from './tags.js';
 import { convertOrPassthrough } from './convert.js';
 import { probe } from './probe.js';
@@ -114,6 +114,29 @@ function reserveOutput(dir, desiredName, ext, claimed) {
   return { finalPath: join(dir, candidate), name: candidate, renamed: candidate !== desiredName };
 }
 
+// The last step is a rename of the finished file to its final name. On Windows a file that
+// was just written can be held open for a moment by a virus scanner or an indexer, and the
+// rename then fails with EPERM or EBUSY. Retry briefly, and if the lock outlasts the retries
+// fall back to a copy, so a finished track is never lost over a transient lock.
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function moveIntoPlace(from, to) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    try { renameSync(from, to); return; } catch (err) {
+      lastError = err;
+      if (!['EPERM', 'EBUSY', 'EACCES'].includes(err.code)) throw err;
+      await sleep(250 * (attempt + 1));
+    }
+  }
+  try {
+    copyFileSync(from, to);
+    rmSync(from, { force: true });
+  } catch {
+    throw lastError;
+  }
+}
+
 export async function applyFile(path, config, outDir, onStage = () => {}, claimed = new Set(), override) {
   const plan = await planFile(path, config, override);
   if (plan.resolved.status === 'flagged') {
@@ -131,7 +154,7 @@ export async function applyFile(path, config, outDir, onStage = () => {}, claime
     writeTags(tmpPath, plan.resolved, plan.outExt);
     onStage('rename');
     const verification = await verifyOutput(tmpPath, plan);
-    renameSync(tmpPath, reserved.finalPath); // reserved name is guaranteed free
+    await moveIntoPlace(tmpPath, reserved.finalPath); // reserved name is guaranteed free
     return {
       ...plan,
       applied: true,
