@@ -16,7 +16,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { dropBracketCredits } from '../engine/clean.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const STORE = join(here, '..', '..', '.audiobox-spotify.json');
+// Same rule as the library settings: the desktop app's data folder when set, else beside the code.
+const STORE = join(process.env.AUDIOBOX_DATA_DIR || join(here, '..', '..'), '.audiobox-spotify.json');
 
 export const REDIRECT_URI = 'http://127.0.0.1:4848/api/spotify/callback';
 // Read scopes for the search list, plus the one write the app ever makes: creating a private

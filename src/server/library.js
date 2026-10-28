@@ -20,7 +20,9 @@ import { isAudioFile, sanitizeName } from '../engine/naming.js';
 import { composeTitle } from '../engine/process.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const STORE = join(ROOT, '.audiobox-library.json');
+// The desktop app keeps settings in its own data folder (AUDIOBOX_DATA_DIR); from source they
+// sit beside the code, gitignored.
+const STORE = join(process.env.AUDIOBOX_DATA_DIR || ROOT, '.audiobox-library.json');
 const DOCS = join(homedir(), 'Documents');
 
 // Soulseek's download folder differs by install and platform. The first candidate that

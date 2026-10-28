@@ -30,3 +30,6 @@ desktop.ini
 # older working copy cannot commit them by accident.
 .audiobox-personal
 .audiobox-mixwork/
+
+# Desktop build output
+dist/

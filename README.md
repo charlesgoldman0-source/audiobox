@@ -15,6 +15,27 @@ nothing is deleted: your originals stay where they are.
 
 Audiobox does not download music. It starts from files already on your disk.
 
+## Download the app
+
+The easiest way is the desktop app. Nothing else needs installing: it carries its own copy of
+FFmpeg and opens in its own window.
+
+1. Open the [Releases page](https://github.com/charlesgoldman0-source/audiobox/releases/latest).
+2. **Windows:** download `Audiobox-Setup-<version>.exe` and run it. Windows may show a blue
+   "Windows protected your PC" box because the app is not signed with a paid certificate.
+   Click **More info**, then **Run anyway**. A desktop shortcut appears when it is done.
+3. **Mac:** download the `.dmg` for your Mac (`arm64` for Apple Silicon, `x64` for Intel),
+   open it, and drag Audiobox to Applications. The first time, right-click the app, choose
+   **Open**, then **Open** again, because it is not signed with an Apple certificate. If macOS
+   says the app is damaged, open Terminal and run
+   `xattr -cr /Applications/Audiobox.app`, then try again.
+
+The desktop app keeps its settings in its own data folder, so it does not share them with a
+copy run from source. To update it, download the newer installer from the same page and run
+it; the settings are kept.
+
+If you would rather run it from source, the rest of this section applies.
+
 ## What you need
 
 - **Node.js 20 or newer**, from [nodejs.org](https://nodejs.org)

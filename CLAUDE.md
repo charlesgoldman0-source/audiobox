@@ -156,6 +156,35 @@ Rules:
 - Paths and settings live in `.audiobox-library.json`, which is gitignored. A fresh clone
   must start with sensible defaults and no leftover data.
 
+## Desktop App
+
+The same server and page, wrapped in Electron so a person downloads one installer and needs
+no Node, Git or FFmpeg. The shell is desktop/main.js, the Electron entry named in
+package.json `main`; `npm run desktop` runs it from source and `npm run dist` packages it.
+
+- The shell imports src/server/dev-server.js in-process on the fixed port 4848 (the Spotify
+  redirect is registered against it), waits for `/api/status`, then opens a BrowserWindow on
+  `/?noreload=1`. Closing the window quits, and a second launch focuses the first.
+- Three hooks let the server stay shared with the browser version: `AUDIOBOX_DESKTOP=1`
+  skips the live-reload watcher (a packed asar cannot be watched); `AUDIOBOX_DATA_DIR`
+  (set to Electron's userData folder) moves `.audiobox-library.json` and
+  `.audiobox-spotify.json` out of the packed code; and `globalThis.audioboxPickFolder`
+  replaces the PowerShell or AppleScript folder picker with the native dialog.
+- FFmpeg ships inside the download through the ffmpeg-static and ffprobe-static packages,
+  unpacked beside the asar; the shell points `AUDIOBOX_FFMPEG` and `AUDIOBOX_FFPROBE` at
+  them, and the locator still falls back to the machine's own FFmpeg. Per-platform `files`
+  exclusions keep only that platform's probe binary (the package ships all of them).
+- Links that would open a new tab go to the system browser; the Spotify sign-in navigates
+  the window itself and returns to the local server.
+- .github/workflows/release.yml builds Windows (NSIS installer and portable exe) and macOS
+  (dmg for arm64 and x64) on a `v*` tag and attaches them to the GitHub Release. Builds
+  are unsigned; desktop/after-pack.cjs ad-hoc signs the Mac app so Apple Silicon will run
+  it. The README tells people how to get past SmartScreen and Gatekeeper.
+- The icon is drawn by desktop/make-icon.mjs from the palette tokens into build/icon.png.
+- Testing from a tool call: the harness sets `ELECTRON_RUN_AS_NODE=1`, which makes Electron
+  run as plain Node; clear it first. `AUDIOBOX_SHOT=<png>` makes the shell capture its
+  window and quit, which is how a build is checked without a hand on the mouse.
+
 ## Platform
 
 - Windows and **macOS** are both supported, so every shell call has a platform branch:

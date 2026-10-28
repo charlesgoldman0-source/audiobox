@@ -82,6 +82,10 @@ function pickFolder(prompt = 'Choose a folder of downloaded tracks') {
   // a backtick here would break out of the AppleScript or PowerShell literal.
   const safePrompt = String(prompt).replace(/[^\w\s,.()-]/g, '').slice(0, 80)
     || 'Choose a folder';
+  // Inside the desktop app the shell supplies the native dialog instead.
+  if (typeof globalThis.audioboxPickFolder === 'function') {
+    return globalThis.audioboxPickFolder(safePrompt).catch(() => null);
+  }
   return new Promise((resolve) => {
     if (process.platform === 'darwin') {
       const script = `POSIX path of (choose folder with prompt "${safePrompt}")`;
@@ -469,13 +473,19 @@ server.on('error', (error) => {
   throw error;
 });
 
-let debounce = null;
-watch(webRoot, { recursive: true }, () => {
-  clearTimeout(debounce);
-  debounce = setTimeout(() => {
-    for (const client of sseClients) client.write('data: reload\n\n');
-  }, 80);
-});
+// Live reload is a development convenience. The desktop app serves its page from inside
+// the packed archive, which cannot be watched, so it skips this.
+if (!process.env.AUDIOBOX_DESKTOP) {
+  let debounce = null;
+  try {
+    watch(webRoot, { recursive: true }, () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        for (const client of sseClients) client.write('data: reload' + String.fromCharCode(10, 10));
+      }, 80);
+    });
+  } catch { /* no watcher, no live reload */ }
+}
 
 server.listen(PORT, () => {
   const status = ffmpegStatus();

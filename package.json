@@ -1,6 +1,6 @@
 {
   "name": "audiobox",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "Local DJ track prep: convert FLAC to true AIFF, rewrite embedded CDJ tags, and rename files to match.",
   "license": "MIT",
@@ -28,10 +28,87 @@
     "fixtures": "node test/make-fixtures.mjs",
     "process": "node src/cli/run.js",
     "check-ffmpeg": "node src/cli/check-ffmpeg.js",
-    "test": "node test/clean.test.mjs && node test/library-match.test.mjs && node test/spotify-links.test.mjs && node test/apple.test.mjs && node test/soundcloud.test.mjs"
+    "test": "node test/clean.test.mjs && node test/library-match.test.mjs && node test/spotify-links.test.mjs && node test/apple.test.mjs && node test/soundcloud.test.mjs",
+    "desktop": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:dir": "electron-builder --dir"
   },
   "dependencies": {
+    "ffmpeg-static": "^5.3.0",
+    "ffprobe-static": "^3.1.0",
     "music-metadata": "^11.13.0",
     "node-taglib-sharp": "^6.0.3"
-  }
+  },
+  "devDependencies": {
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0"
+  },
+  "main": "desktop/main.js",
+  "build": {
+    "appId": "com.audiobox.desktop",
+    "productName": "Audiobox",
+    "copyright": "MIT licence",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "desktop/**/*",
+      "src/**/*",
+      "web/**/*",
+      "package.json",
+      "!desktop/make-icon.mjs"
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**",
+      "node_modules/ffprobe-static/**"
+    ],
+    "afterPack": "desktop/after-pack.cjs",
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.png",
+      "files": [
+        "!node_modules/ffprobe-static/bin/darwin/**",
+        "!node_modules/ffprobe-static/bin/linux/**",
+        "!node_modules/ffprobe-static/bin/win32/ia32/**"
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "Audiobox-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Audiobox-Portable-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.music",
+      "identity": null,
+      "artifactName": "Audiobox-${version}-mac-${arch}.${ext}",
+      "files": [
+        "!node_modules/ffprobe-static/bin/win32/**",
+        "!node_modules/ffprobe-static/bin/linux/**"
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "charlesgoldman0-source",
+      "repo": "audiobox",
+      "releaseType": "release"
+    }
+  },
+  "author": "Charles Goldman"
 }
