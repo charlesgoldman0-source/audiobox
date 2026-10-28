@@ -140,8 +140,9 @@ their own. Lines already on the list are not added twice.
 
 SoundCloud titles are typed by whoever uploaded the track, so the names there are best
 effort: Audiobox uses the label's own artist and title where the upload carries them, then an
-"Artist - Title" split of the upload's title, and otherwise leaves the artist blank rather
-than guess.
+"Artist - Title" split of the upload's title, then the uploader's own name, since artists
+usually upload their own tracks. An uploader that reads as a label or channel is not used,
+and the artist is left blank rather than guessed.
 
 As files arrive, Audiobox matches them against the list, so you can see what you still need,
 then convert and rename the lot in one go.

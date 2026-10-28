@@ -1,6 +1,6 @@
 {
   "name": "audiobox",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "description": "Local DJ track prep: convert FLAC to true AIFF, rewrite embedded CDJ tags, and rename files to match.",
   "license": "MIT",

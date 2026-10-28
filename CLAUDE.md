@@ -114,10 +114,12 @@ The same job for SoundCloud sets, in src/server/soundcloud.js, through `/api/sou
   once if SoundCloud rejects it.
 - **Naming is best effort, never invented.** Titles are uploader free text. Order of
   preference: `publisher_metadata.artist` (with `release_title` when the title has no
-  dash), then an "Artist - Title" split of the title with a catalogue code such as SGR087
-  dropped from either end, else the title alone with the artist blank. `trackToLine()` is the
-  rule and is unit tested. The uploader's username is never used as the artist, because
-  uploaders are usually labels or DJs.
+  dash), then an "Artist - Title" split of the title (hyphen, en dash or em dash) with a
+  catalogue code such as SGR087 dropped from either end, then the uploader's display name
+  unless it reads as a label, channel or show (Records, Radio, Podcast, Premiere and so on),
+  else the title alone with the artist blank. `trackToLine()` is the rule and is unit tested.
+  The uploader fallback was added after real sets showed about one track in twenty with a
+  bare title, nearly always self-uploaded by the artist.
 - The checklist id is `<user>-<slug>`, and the folder takes the set's title as usual.
 
 ## Single Song Links

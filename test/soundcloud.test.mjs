@@ -40,11 +40,17 @@ test('splits a typed Artist - Title and drops a catalogue code from either end',
   assert.equal(trackToLine({ title: 'Josh Baker & Kieran Morgan - Together' }).line, 'Josh Baker, Kieran Morgan - Together');
   assert.equal(trackToLine({ title: 'Julian Fijma- Late Night Schemes' }).line, 'Julian Fijma - Late Night Schemes');
   assert.equal(trackToLine({ title: 'Hi-Fi Lover' }).line, 'Hi-Fi Lover');
+  assert.equal(trackToLine({ title: 'Rossi. – Little Man' }).line, 'Rossi - Little Man');
+  assert.equal(trackToLine({ title: 'SOSA — Funkboy' }).line, 'SOSA - Funkboy');
 });
 
-test('strips promo wording and leaves the artist blank rather than guess', () => {
+test('strips promo wording and falls back to the uploader only when it looks like an artist', () => {
   assert.equal(trackToLine({ title: 'PREMIERE: Deep Water (Original Mix)' }).line, 'Deep Water');
   assert.equal(trackToLine({ title: 'Solo Track' }).artist, '');
+  assert.equal(trackToLine({ title: 'Subconscious', user: { username: 'MANT' } }).line, 'MANT - Subconscious');
+  assert.equal(trackToLine({ title: 'Neem De Tijd', user: { username: 'Across Boundaries' } }).line, 'Across Boundaries - Neem De Tijd');
+  assert.equal(trackToLine({ title: 'Night Drive', user: { username: 'Solid Grooves Records' } }).artist, '');
+  assert.equal(trackToLine({ title: 'Gaskin - Closer', user: { username: 'Some Label Records' } }).line, 'Gaskin - Closer');
   assert.equal(trackToLine({ title: 'My Paradise **FREE DL**', publisher_metadata: { artist: 'The Trip' } }).line, 'The Trip - My Paradise');
   assert.equal(trackToLine({ title: 'Night Drive (Out Now on Solid Grooves)', publisher_metadata: { artist: 'Someone' } }).line, 'Someone - Night Drive');
 });

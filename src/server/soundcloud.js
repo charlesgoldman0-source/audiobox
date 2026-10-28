@@ -50,7 +50,12 @@ export function trackRefFrom(input) {
 
 // A catalogue code such as SGR087, uts20 or VOY-012: letters and digits, no spaces.
 const CATALOGUE_RE = /^[a-z]{1,8}[-_ ]?\d{1,4}[a-z]?$/i;
-const DASH_SPLIT_RE = /\s+-\s*|\s*-\s+/;
+// Hyphen, en dash or em dash with a space on at least one side. Built from code points so
+// the source stays plain ASCII; tidy() has already collapsed whitespace to single spaces.
+const DASHES = '-' + String.fromCharCode(0x2013) + String.fromCharCode(0x2014);
+const DASH_SPLIT_RE = new RegExp('[ ]+[' + DASHES + '][ ]*|[ ]*[' + DASHES + '][ ]+');
+// An uploader name that is a label, channel or show rather than an artist.
+const CHANNEL_RE = /(records|recordings|recs|label|radio|podcast|premiere|premieres|promo|music group|collective|various artists)/i;
 // Uploader promo wording the generic cleaner does not know about: a shouted prefix, a
 // bracketed "out now on ..." note, and decorative asterisks.
 const SC_PREFIX_RE = /^\s*(?:premiere|out now|free download|free dl)\s*[:|-]?\s*/i;
@@ -60,7 +65,18 @@ function tidy(value) {
   return String(value || '').replace(/\*+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-// Builds the line from a track record. Exported for tests.
+// The uploader's display name, used only when nothing better exists. Artists in this scene
+// mostly upload their own tracks, so the name is usually right; a label or channel name is
+// left out because it would be wrong more often than not.
+function uploaderArtist(track) {
+  const name = tidy(track && track.user && (track.user.username || track.user.full_name));
+  if (!name || CHANNEL_RE.test(name)) return '';
+  return name;
+}
+
+// Builds the line from a track record. Exported for tests. Artist, in order of preference:
+// the label's publisher metadata, the "Artist - Title" split of the typed title, then the
+// uploader's own name. Nothing is ever made up; a line with no artist is still possible.
 export function trackToLine(track) {
   const pub = (track && track.publisher_metadata) || {};
   let artist = tidy(pub.artist);
@@ -80,6 +96,7 @@ export function trackToLine(track) {
   } else if (artist && pub.release_title) {
     title = tidy(pub.release_title);
   }
+  if (!artist) artist = uploaderArtist(track);
 
   const cleaned = cleanTitle(title);
   const finalTitle = cleaned.title;
